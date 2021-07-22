@@ -21,6 +21,8 @@ class CreateProductsTable extends Migration
             $table->integer('count');
             $table->decimal('price');
 
+            $table->foreignId('category_id')->constrained();
+
             $table->timestamps();
         });
     }

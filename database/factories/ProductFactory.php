@@ -2,8 +2,10 @@
 
 namespace Database\Factories;
 
+use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
 class ProductFactory extends Factory
 {
@@ -21,8 +23,15 @@ class ProductFactory extends Factory
      */
     public function definition()
     {
-        return [
+        $title = $this->faker->unique()->word();
 
+        return [
+            'title' => $title,
+            'slug' => Str::slug($title),
+            'description' => $this->faker->sentence,
+            'count' => $this->faker->randomDigit(),
+            'price' => $this->faker->randomFloat(2, 1, 10000),
+            'category_id' => Category::inRandomOrder()->first()->id,
         ];
     }
 }
