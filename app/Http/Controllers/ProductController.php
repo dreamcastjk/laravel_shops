@@ -3,23 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Services\ViewRedisHandler;
 use Illuminate\Support\Facades\Redis;
 
 class ProductController extends Controller
 {
-    public function product(Product $product)
+    public function product(Product $product, ViewRedisHandler $viewRedisHandler)
     {
-        if ($productView = Redis::get("product:$product->id:view")) {
-            return $productView;
-        }
+        $viewRedisHandler->handler($product->slug, function () use ($product) {
+            return view('products.product', compact('product'))->render();
+        });
 
-        $view = view('products.product', compact('product'))->render();
-        $set = Redis::set("product:$product->id:view", $view, 'EX', config('cache.stores.redis.lifetime'));
-
-        if ($set) {
-            return $view;
-        }
-
-        abort(404);
+        return $viewRedisHandler->getValue();
     }
 }
