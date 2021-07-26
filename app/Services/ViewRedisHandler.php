@@ -4,10 +4,12 @@
 namespace App\Services;
 
 
+use App\Interfaces\IRedisKeyGenerate;
+
 class ViewRedisHandler extends AbstractRedisHandler
 {
-    protected function keyGenerate(string $slug)
+    public function keyGenerate(string $slug): string
     {
-        $this->key = "view:$slug";
+        return "view:$slug";
     }
 }

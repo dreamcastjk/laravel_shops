@@ -3,67 +3,47 @@
 
 namespace App\Services;
 
-
-use App\Interfaces\IRedisKeyGenerate;
 use Closure;
+use App\Interfaces\IRedisHandler;
+use App\Interfaces\IRedisKeyGenerate;
 use Illuminate\Support\Facades\Redis;
 
-abstract class AbstractRedisHandler
+abstract class AbstractRedisHandler implements IRedisHandler, IRedisKeyGenerate
 {
-    protected string $key;
-    private ?string $resultOfHandling;
-
-    public function handler(string $slug, Closure $generate): bool
+    public function handler(string $slug, Closure $cacheDataCallback): string
     {
-        $this->keyGenerate($slug);
+        if (!$this->redisIsActive()) {
+            return $cacheDataCallback();
+        }
 
-        if($this->redisEnableCheck()) {
+        $redisKey = $this->keyGenerate($slug);
+
+        $cachedValue = Redis::get($redisKey);
+
+        if ($cachedValue) {
+            return $cachedValue;
+        }
+
+        $cachedValue = $cacheDataCallback();
+
+        Redis::set($redisKey, $cachedValue, 'EX', config('cache.stores.redis.lifetime'));
+
+        return $cachedValue;
+    }
+
+    /**
+     * Проверяем подключение к редису.
+     *
+     * @return bool
+     */
+    private function redisIsActive(): bool
+    {
+        try {
+            Redis::connection();
+
             return true;
-        } else {
-            if($this->setKey($generate())){
-                return true;
-            }
-
-            $this->resultOfHandling = $generate();
-
+        } catch (\RedisException $e) {
             return false;
         }
     }
-
-    private function redisEnableCheck(): bool
-    {
-        if (true){
-            return $this->keyExist();
-        }
-
-        return false;
-    }
-
-    private function keyExist(): bool
-    {
-        $this->resultOfHandling = Redis::get($this->key);
-        if ($this->resultOfHandling){
-            return true;
-        }
-
-        return false;
-    }
-
-    private function setKey(string $value): bool
-    {
-        $this->resultOfHandling = $value;
-        if (Redis::set($this->key, $value, 'EX', config('cache.stores.redis.lifetime')))
-        {
-            return true;
-        }
-
-        return false;
-    }
-
-    public function getValue(): string
-    {
-        return $this->resultOfHandling;
-    }
-
-    protected abstract function keyGenerate(string $slug);
 }
